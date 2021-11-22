@@ -4,8 +4,8 @@
 #include "结构.h"
 
 // 设备名称
-#define DEVICE_NAME L"\\Device\\hackflame"
-#define SYM_NAME L"\\??\\hackflame"
+#define DEVICE_NAME L"\\Device\\smallzhong"
+#define SYM_NAME L"\\??\\smallzhong"
 #define DEVICE_EXTEND_SIZE 0
 
 // 请求号，自定义请求号从0x800开始
@@ -107,8 +107,6 @@ VOID 线程_句柄降权(PEPROCESS ep)
 				if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
 					ObDereferenceObject(Process);
 			}
-
-
 		}
 
 		LARGE_INTEGER tin = { 0 };
