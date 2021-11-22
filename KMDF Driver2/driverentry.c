@@ -96,10 +96,7 @@ VOID 线程_句柄降权(PEPROCESS ep)
 				continue;
 			}
 
-
-			//DbgBreakPoint();
-				// TODO：这里有一个硬编码(win7)
-
+			// TODO:这里有一个硬编码(objecttable)
 			if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
 			{
 				ExEnumHandleTable(*(PULONG)((PUCHAR)Process + 获取偏移_ObjectTable()), 回调_句柄降权, ep, NULL);
