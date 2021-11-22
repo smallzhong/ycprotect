@@ -16,7 +16,7 @@
 
 // TODO:完善为更稳定方法
 // 结束之前设为FALSE让线程自动退出
-BOOLEAN isThreadWork = TRUE;
+PBOOLEAN pisThreadWork = NULL;
 
 VOID DRIVERUNLOAD(_In_ struct _DRIVER_OBJECT* DriverObject)
 {
@@ -29,7 +29,7 @@ VOID DRIVERUNLOAD(_In_ struct _DRIVER_OBJECT* DriverObject)
 	IoDeleteDevice(DriverObject->DeviceObject);
 
 	// TODO:稳定
-	isThreadWork = FALSE;
+	*pisThreadWork = FALSE;
 	LARGE_INTEGER tin = { 0 };
 	tin.QuadPart = -10000 * 15000;
 	KeDelayExecutionThread(KernelMode, FALSE, &tin);
@@ -95,7 +95,7 @@ VOID 线程_句柄降权(PEPROCESS ep)
 {
 	//DbgBreakPoint();
 	HANDLE pid = PsGetProcessId(ep);
-	while (isThreadWork)
+	while (*pisThreadWork)
 	{
 		PEPROCESS pOld = NULL;
 		pOld = PsGetCurrentProcess();
@@ -184,7 +184,9 @@ NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 			RtlMoveMemory(&pid, p, sizeof(ULONG));
 			KdPrintEx((77, 0, "pid = %u\r\n", pid));
 
+			DbgPrintEx(77, 0, "pid = %d\r\n", pid);
 			BOOLEAN status = 句柄降权_pid(pid);
+
 
 			// TODO: 返回三环状态
 
@@ -200,6 +202,9 @@ NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT pDriver, PUNICODE_STRING pReg)
 {
+	pisThreadWork = ExAllocatePool(NonPagedPool, PAGE_SIZE);
+	*pisThreadWork = TRUE;
+
 	KdPrintEx((77, 0, "entry\r\n"));
 	// 设备名称
 	UNICODE_STRING unName = { 0 };
