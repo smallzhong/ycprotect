@@ -53,6 +53,17 @@ ULONG 获取偏移_ObjectTable()
 	return 0xf4;
 }
 
+ULONG 获取偏移_ActiveProcessLinks()
+{
+	// TODO:兼容
+	return 0xb8;
+}
+
+ULONG 获取偏移_ImageFileName()
+{
+	return 0x16c;
+}
+
 BOOLEAN NTAPI 回调_句柄降权(
 	IN PHANDLE_TABLE_ENTRY HandleTableEntry,
 	IN HANDLE Handle,
@@ -65,7 +76,7 @@ BOOLEAN NTAPI 回调_句柄降权(
 		PUCHAR x = (HandleTableEntry->Value & ~7);
 		ULONG_PTR object = (HandleTableEntry->Value & ~7) + 0x18; //0xfffffff8
 		UCHAR tindex = *(x + 0xc);
-		DbgPrintEx(77, 0, "[db]:index = %x EnumParameter=%x,object=%x\r\n", tindex, EnumParameter, object);
+		KdPrintEx((77, 0, "[db]:index = %x EnumParameter=%x,object=%x\r\n", tindex, EnumParameter, object));
 		if (tindex == 0x7)
 		{
 			//DbgBreakPoint();
@@ -73,7 +84,6 @@ BOOLEAN NTAPI 回调_句柄降权(
 			if (object == (ULONG_PTR)EnumParameter)
 			{
 				HandleTableEntry->GrantedAccess &= ~(PROCESS_VM_READ | PROCESS_VM_WRITE);
-
 			}
 		}
 	}
@@ -87,27 +97,42 @@ VOID 线程_句柄降权(PEPROCESS ep)
 	HANDLE pid = PsGetProcessId(ep);
 	while (isThreadWork)
 	{
-		PEPROCESS Process = NULL;
-		for (ULONG i = 8; i < 0x1000000; i += 4)
+		PEPROCESS pOld = NULL;
+		pOld = PsGetCurrentProcess();
+		PEPROCESS pCur = pOld;
+
+		do
 		{
-			NTSTATUS status = PsLookupProcessByProcessId((HANDLE)i, &Process);
-			if (!NT_SUCCESS(status))
-			{
-				continue;
-			}
+			pCur = (PEPROCESS)((PUCHAR)(*(PULONG)((PUCHAR)pCur + 获取偏移_ActiveProcessLinks())) - 获取偏移_ActiveProcessLinks());
+			KdPrintEx((77, 0, "当前进程%s\r\n", (PUCHAR)pCur + 获取偏移_ImageFileName()));
 
-			// TODO:这里有一个硬编码(objecttable)
-			if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
+			if (PsGetProcessExitStatus(pCur) == STATUS_PENDING)
 			{
-				ExEnumHandleTable(*(PULONG)((PUCHAR)Process + 获取偏移_ObjectTable()), 回调_句柄降权, ep, NULL);
-
-				if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
-					ObDereferenceObject(Process);
+				ExEnumHandleTable(*(PULONG)((PUCHAR)pCur + 获取偏移_ObjectTable()), 回调_句柄降权, ep, NULL);
 			}
-		}
+		} while (pCur != pOld);
+
+		//PEPROCESS Process = NULL;
+		//for (ULONG i = 8; i < 0x1000000; i += 4)
+		//{
+		//	NTSTATUS status = PsLookupProcessByProcessId((HANDLE)i, &Process);
+		//	if (!NT_SUCCESS(status))
+		//	{
+		//		continue;
+		//	}
+
+		//	// TODO:这里有一个硬编码(objecttable)
+		//	if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
+		//	{
+		//		ExEnumHandleTable(*(PULONG)((PUCHAR)Process + 获取偏移_ObjectTable()), 回调_句柄降权, ep, NULL);
+
+		//		if (PsGetProcessExitStatus(Process) == STATUS_PENDING)
+		//			ObDereferenceObject(Process);
+		//	}
+		//}
 
 		LARGE_INTEGER tin = { 0 };
-		tin.QuadPart = -100000 * 10000;
+		tin.QuadPart = -10000 * 1000;
 		KeDelayExecutionThread(KernelMode, FALSE, &tin);
 	}
 }
