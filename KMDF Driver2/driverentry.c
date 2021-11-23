@@ -10,13 +10,16 @@
 
 // 请求号，自定义请求号从0x800开始
 #define CODE_句柄降权 0x800
+#define CODE_XOR_VERIFY 0x801
 
 // 请求
 #define CTL_句柄降权 CTL_CODE(FILE_DEVICE_UNKNOWN, CODE_句柄降权, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define CTL_XOR_VERIFY CTL_CODE(FILE_DEVICE_UNKNOWN, CODE_XOR_VERIFY, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 // TODO:完善为更稳定方法
 // 结束之前设为FALSE让线程自动退出
 PBOOLEAN pisThreadWork = NULL;
+PDRIVER_OBJECT g_pDriver = NULL;
 
 VOID DRIVERUNLOAD(_In_ struct _DRIVER_OBJECT* DriverObject)
 {
@@ -156,6 +159,26 @@ BOOLEAN 句柄降权_pid(ULONG pid)
 	return TRUE; // 执行成功
 }
 
+VOID start_xor_verify_func()
+{
+	PUCHAR start = (PUCHAR)(*(PULONG)((PUCHAR)g_pDriver + 0xc));
+	ULONG size = *(PULONG)((PUCHAR)g_pDriver + 0x10);
+
+	UCHAR res = 0;
+	for (ULONG i = 0; i < size; i++)
+	{
+		res ^= *(start + i);
+	}
+
+	KdPrintEx((77, 0, "res = %x\r\n", res));
+
+	KdPrintEx((77, 0, "start = %x\r\n", start));
+	KdPrintEx((77, 0, "size = %x\r\n", size));
+	KdPrintEx((77, 0, "pdriver = %x\r\n", pDriver));
+
+	return res;
+}
+
 NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 {
 	PIO_STACK_LOCATION ioStack = IoGetCurrentIrpStackLocation(Irp);
@@ -184,12 +207,14 @@ NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 			RtlMoveMemory(&pid, p, sizeof(ULONG));
 			KdPrintEx((77, 0, "pid = %u\r\n", pid));
 
-			DbgPrintEx(77, 0, "pid = %d\r\n", pid);
 			BOOLEAN status = 句柄降权_pid(pid);
 
-
 			// TODO: 返回三环状态
-
+			break;
+		}
+		case CTL_XOR_VERIFY:
+		{
+			start_xor_verify_func();
 			break;
 		}
 		}
@@ -202,6 +227,9 @@ NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT pDriver, PUNICODE_STRING pReg)
 {
+	// TODO:防止全局变量缺页蓝屏
+	g_pDriver = pDriver;
+
 	pisThreadWork = ExAllocatePool(NonPagedPool, PAGE_SIZE);
 	*pisThreadWork = TRUE;
 
