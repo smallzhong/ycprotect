@@ -162,25 +162,25 @@ BOOLEAN 句柄降权_pid(ULONG pid)
 	return TRUE; // 执行成功
 }
 
-VOID start_xor_verify_func()
-{
-	PUCHAR start = (PUCHAR)(*(PULONG)((PUCHAR)g_pDriver + 0xc));
-	ULONG size = *(PULONG)((PUCHAR)g_pDriver + 0x10);
-
-	UCHAR res = 0;
-	for (ULONG i = 0; i < size; i++)
-	{
-		res ^= *(start + i);
-	}
-
-	KdPrintEx((77, 0, "res = %x\r\n", res));
-
-	KdPrintEx((77, 0, "start = %x\r\n", start));
-	KdPrintEx((77, 0, "size = %x\r\n", size));
-	KdPrintEx((77, 0, "pdriver = %x\r\n", g_pDriver));
-
-	return res;
-}
+//VOID start_xor_verify_func()
+//{
+//	PUCHAR start = (PUCHAR)(*(PULONG)((PUCHAR)g_pDriver + 0xc));
+//	ULONG size = *(PULONG)((PUCHAR)g_pDriver + 0x10);
+//
+//	UCHAR res = 0;
+//	for (ULONG i = 0; i < size; i++)
+//	{
+//		res ^= *(start + i);
+//	}
+//
+//	KdPrintEx((77, 0, "res = %x\r\n", res));
+//
+//	KdPrintEx((77, 0, "start = %x\r\n", start));
+//	KdPrintEx((77, 0, "size = %x\r\n", size));
+//	KdPrintEx((77, 0, "pdriver = %x\r\n", g_pDriver));
+//
+//	return res;
+//}
 
 NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 {
@@ -217,7 +217,8 @@ NTSTATUS dispatch_func(DEVICE_OBJECT* DeviceObject, IRP* Irp)
 		}
 		case CTL_XOR_VERIFY:
 		{
-			start_xor_verify_func();
+			//start_xor_verify_func();
+			KdPrintEx((77, 0, "功能未完善！\r\n"));
 			break;
 		}
 		}
