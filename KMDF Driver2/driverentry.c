@@ -3,6 +3,9 @@
 #include <ntstrsafe.h>
 #include "结构.h"
 
+#define YCDBG 
+//#define YCDBG KdPrintEx
+
 // 设备名称
 #define DEVICE_NAME L"\\Device\\smallzhong"
 #define SYM_NAME L"\\??\\smallzhong"
@@ -27,7 +30,7 @@ VOID DRIVERUNLOAD(_In_ struct _DRIVER_OBJECT* DriverObject)
 	UNICODE_STRING symName = { 0 };
 	RtlInitUnicodeString(&symName, SYM_NAME);
 	IoDeleteSymbolicLink(&symName);
-
+	
 	// 删除设备
 	IoDeleteDevice(DriverObject->DeviceObject);
 
@@ -79,7 +82,7 @@ BOOLEAN NTAPI 回调_句柄降权(
 		PUCHAR x = (HandleTableEntry->Value & ~7);
 		ULONG_PTR object = (HandleTableEntry->Value & ~7) + 0x18; //0xfffffff8
 		UCHAR tindex = *(x + 0xc);
-		KdPrintEx((77, 0, "[db]:index = %x EnumParameter=%x,object=%x\r\n", tindex, EnumParameter, object));
+		YCDBG((77, 0, "[db]:index = %x EnumParameter=%x,object=%x\r\n", tindex, EnumParameter, object));
 		if (tindex == 0x7)
 		{
 			//DbgBreakPoint();
@@ -174,7 +177,7 @@ VOID start_xor_verify_func()
 
 	KdPrintEx((77, 0, "start = %x\r\n", start));
 	KdPrintEx((77, 0, "size = %x\r\n", size));
-	KdPrintEx((77, 0, "pdriver = %x\r\n", pDriver));
+	KdPrintEx((77, 0, "pdriver = %x\r\n", g_pDriver));
 
 	return res;
 }
